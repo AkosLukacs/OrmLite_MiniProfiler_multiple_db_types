@@ -32,11 +32,13 @@ namespace ServiceStackConcurrency2.Web
     {
         public object Get(Hello request)
         {
+            //to make this fail: use the current OrmLite dll's from nuget.
+            //to make it work: use OrmLite dll's from @modifiedDlls folder
             var postgresFactory = new OrmLiteConnectionFactory(ConfigurationManager.ConnectionStrings["servicestack_postgres"].ConnectionString, PostgreSqlDialect.Provider) {
                 ConnectionFilter = x => new ProfiledDbConnection(x, Profiler.Current)
             };
             var sqlServerFactory = new OrmLiteConnectionFactory(ConfigurationManager.ConnectionStrings["servicestack_sqlserver"].ConnectionString, SqlServerDialect.Provider) {
-                //ConnectionFilter = x => new ProfiledDbConnection(x, Profiler.Current)
+                ConnectionFilter = x => new ProfiledDbConnection(x, Profiler.Current)
             };
 
             List<DummyTable> fromSqlServer = null;
@@ -45,10 +47,10 @@ namespace ServiceStackConcurrency2.Web
             try {
 
                 using(var postgresConn = postgresFactory.OpenDbConnection()) {
-                    postgresConn.DropAndCreateTable<DummyTable>();
+                    postgresConn.DropAndCreateTable<DummyTable>();//fails at the drop and create step if ConnectionFilters are set
                     postgresConn.Insert(new DummyTable { DummyString = "elephant 1" }, new DummyTable { DummyString = "elephant 1" }, new DummyTable { DummyString = "elephant 1" });
 
-                    fromPostgres = postgresConn.Select<DummyTable>(y => y.Limit(2));//limit syntax differs in postgres and ms-sql
+                    fromPostgres = postgresConn.Select<DummyTable>(y => y.Limit(2));
 
 
                     using(var sqlConn = sqlServerFactory.OpenDbConnection()) {
